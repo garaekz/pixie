@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'pixelforge' => [
+        'base_url' => env('PF_BASE_URL', 'https://pixelforge.promptedit.dev/v1'),
+        'api_key' => env('PF_API_KEY'),
+        'webhook_secret' => env('PF_WEBHOOK_SECRET'),
+    ],
 
     /*
     |--------------------------------------------------------------------------
