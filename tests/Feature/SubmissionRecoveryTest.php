@@ -261,6 +261,34 @@ it('returns 422 without changing a generation or wallet when retry is scheduled 
     Queue::assertNothingPushed();
 })->with([SubmissionState::Pending, SubmissionState::Accepted, SubmissionState::Uncertain]);
 
+it('allows manual recovery once the retry deadline is reached', function () {
+    $this->travelTo(now()->startOfSecond());
+    Queue::fake([SubmitGeneration::class]);
+    $generation = pendingGeneration([
+        'submission_state' => SubmissionState::Uncertain,
+        'submission_uncertain' => true,
+        'submission_attempts' => 5,
+        'next_attempt_at' => now(),
+    ]);
+    $user = $generation->user;
+    $walletBefore = $user->getAttributes();
+
+    $this->actingAs($user)->from(route('generations.show', $generation))
+        ->post(route('generations.retry', $generation))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('generations.show', $generation));
+
+    $generation->refresh();
+    expect($generation->submission_attempts)->toBe(0);
+    expect($generation->submission_state)->toBe(SubmissionState::Pending);
+    expect($generation->submission_uncertain)->toBeTrue();
+    expect($generation->next_attempt_at->equalTo(now()))->toBeTrue();
+    expect($generation->reserved_pico)->toBe(1_000_000_000);
+    expect($user->fresh()->getAttributes())->toBe($walletBefore);
+    Queue::assertPushed(SubmitGeneration::class, 1);
+    Queue::assertPushed(SubmitGeneration::class, fn (SubmitGeneration $job): bool => $job->generationId === $generation->id);
+});
+
 it('reports validation diagnostics for malformed polled payloads', function () {
     Http::preventStrayRequests();
     Exceptions::fake();

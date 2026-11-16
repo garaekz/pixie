@@ -4,17 +4,36 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateGeneration;
 use App\Actions\EstimateGeneration;
+use App\Actions\ListGenerations;
 use App\Actions\RetryGeneration;
+use App\Actions\ShowGeneration;
 use App\Http\Requests\EstimateGenerationRequest;
+use App\Http\Requests\GenerationIndexRequest;
 use App\Http\Requests\GenerationRequest;
 use App\Http\Requests\RetryGenerationRequest;
 use App\Models\Generation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class GenerationController extends Controller
 {
+    public function dashboard(GenerationIndexRequest $request, ListGenerations $generations): Response
+    {
+        return Inertia::render('Dashboard', $generations->handle($request->user(), $request->status(), recent: true));
+    }
+
+    public function index(GenerationIndexRequest $request, ListGenerations $generations): Response
+    {
+        return Inertia::render('Generations/Index', $generations->handle($request->user(), $request->status()));
+    }
+
+    public function show(Generation $generation, ShowGeneration $show): Response
+    {
+        return Inertia::render('Generations/Show', $show->handle($generation));
+    }
+
     public function estimate(EstimateGenerationRequest $request, EstimateGeneration $estimate): JsonResponse
     {
         return response()->json($estimate->handle($request->validated()));

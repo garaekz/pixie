@@ -10,7 +10,9 @@ Route::inertia('/', 'Welcome')->name('home');
 Route::post('webhooks/pixelforge', PixelforgeWebhookController::class)->middleware(VerifyPixelforgeSignature::class)->name('webhooks.pixelforge');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('dashboard', [GenerationController::class, 'dashboard'])->name('dashboard');
+    Route::get('generations', [GenerationController::class, 'index'])->name('generations.index');
+    Route::get('generations/{generation}', [GenerationController::class, 'show'])->can('view', 'generation')->name('generations.show');
     Route::post('generations/estimate', [GenerationController::class, 'estimate'])->middleware('throttle:120,1')->name('generations.estimate');
     Route::post('generations', [GenerationController::class, 'store'])->middleware('throttle:20,1')->name('generations.store');
     Route::post('generations/{generation}/retry', [GenerationController::class, 'retry'])->middleware('throttle:6,1')->name('generations.retry');

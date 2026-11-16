@@ -278,6 +278,44 @@ it('matches a webhook delivered before the create response by local id', functio
         ->and($generation->fresh()->provider_id)->toBe('gen_test_1');
 });
 
+it('rejects guest generation submissions and estimates and invalid generation input', function () {
+    $this->post(route('generations.store'), [])->assertRedirect(route('login'));
+    $this->post(route('generations.estimate'), [])->assertRedirect(route('login'));
+
+    $user = User::factory()->create(['balance_pico' => 5_000_000_000_000]);
+    $this->actingAs($user)->post(route('generations.estimate'), [
+        'prompt' => '',
+        'size' => 'not-a-size',
+        'quality' => 'not-a-quality',
+        'reference_images' => ['not-a-url'],
+    ])->assertSessionHasErrors(['prompt', 'size', 'quality', 'reference_images.0']);
+});
+
+it('scopes generation history to the authenticated owner', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    Generation::factory()->create(['user_id' => $owner->id, 'prompt' => 'owner image']);
+    Generation::factory()->create(['user_id' => $other->id, 'prompt' => 'private image']);
+
+    $this->actingAs($owner)->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->where('generations.data', fn ($rows): bool => $rows->count() === 1 && $rows[0]['prompt'] === 'owner image'));
+});
+
+it('blocks generation submission when available credits cannot cover the reservation', function () {
+    $user = User::factory()->create(['balance_pico' => 0]);
+
+    $this->actingAs($user)->post(route('generations.store'), [
+        'request_id' => (string) Str::uuid(),
+        'prompt' => 'a high quality scene',
+        'size' => '1536x1024',
+        'quality' => 'high',
+        'reference_images' => [],
+    ])->assertSessionHasErrors(['prompt']);
+
+    expect(Generation::query()->count())->toBe(0);
+});
+
 it('rejects stale and tampered webhook signatures', function () {
     $payload = pixelforgeEvent(['id' => 'gen_unknown'], 'generation.processing', 'evt_old');
     $oldTimestamp = now()->subMinutes(6)->timestamp;
