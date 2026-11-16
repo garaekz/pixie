@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\GenerationController;
 use App\Http\Controllers\PixelforgeWebhookController;
@@ -17,6 +18,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('generations', [GenerationController::class, 'store'])->middleware('throttle:20,1')->name('generations.store');
     Route::post('generations/{generation}/retry', [GenerationController::class, 'retry'])->middleware('throttle:6,1')->name('generations.retry');
     Route::post('credits', [CreditController::class, 'store'])->middleware('throttle:20,1')->name('credits.store');
+    Route::get('admin/report', AdminReportController::class)->middleware('can:view-admin-report')->name('admin.report');
 });
 
 require __DIR__.'/settings.php';
