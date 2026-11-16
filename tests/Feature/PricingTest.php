@@ -2,8 +2,10 @@
 
 use App\Actions\Money;
 use App\Actions\PixelforgePricing;
+use App\Models\User;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 function pricingCatalog(): array
 {
@@ -31,6 +33,31 @@ function pricingCatalog(): array
         ],
     ];
 }
+
+it('returns exact estimate and maximum decimal strings without reserving credits or submitting a generation', function () {
+    config()->set('services.pixelforge.base_url', 'https://pixelforge.test/v1');
+    Http::preventStrayRequests();
+    Http::fake(['https://pixelforge.test/v1/pricing' => Http::response(pricingCatalog())]);
+    Queue::fake();
+    $user = User::factory()->create(['balance_pico' => 5_000_000_000_000]);
+    $walletBefore = $user->refresh()->getAttributes();
+
+    $this->actingAs($user)->postJson(route('generations.estimate'), [
+        'prompt' => str_repeat('a', 400),
+        'size' => '1536x1024',
+        'quality' => 'high',
+        'reference_images' => ['https://example.test/a.png', 'https://example.test/b.png'],
+    ])->assertOk()->assertExactJson([
+        'estimate' => '0.412562500000',
+        'maximum' => '0.467343750000',
+    ]);
+
+    expect($user->fresh()->getAttributes())->toBe($walletBefore);
+    $this->assertDatabaseCount('generations', 0);
+    $this->assertDatabaseCount('credit_transactions', 0);
+    Queue::assertNothingPushed();
+    Http::assertSentCount(1);
+});
 
 it('quotes the midpoint estimate and maximum customer charge', function () {
     $quote = app(PixelforgePricing::class)->quote([
