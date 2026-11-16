@@ -2,9 +2,12 @@
 
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\GenerationController;
+use App\Http\Controllers\PixelforgeWebhookController;
+use App\Http\Middleware\VerifyPixelforgeSignature;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
+Route::post('webhooks/pixelforge', PixelforgeWebhookController::class)->middleware(VerifyPixelforgeSignature::class)->name('webhooks.pixelforge');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
