@@ -17,7 +17,7 @@ class RetryGeneration
             if ($record->isTerminal()) {
                 throw ValidationException::withMessages(['prompt' => 'This generation is already complete.']);
             }
-            if ($record->api_key_hash !== PixelforgeClient::keyHash()) {
+            if (PixelforgeCredentials::apiKey($record->api_key_hash) === null) {
                 throw ValidationException::withMessages(['prompt' => 'Restore the original provider key before retrying this generation.']);
             }
             if ($record->next_attempt_at?->isFuture()) {

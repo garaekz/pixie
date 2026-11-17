@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Actions\PixelforgeClient;
+use App\Actions\PixelforgeCredentials;
 use App\Enums\GenerationStatus;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
@@ -20,7 +20,7 @@ class ReconcileGenerations extends Command
         $limit = min(30, max(1, (int) $this->option('limit')));
         $generations = Generation::query()
             ->whereNotIn('status', [GenerationStatus::Succeeded->value, GenerationStatus::Failed->value])
-            ->where('api_key_hash', PixelforgeClient::keyHash())
+            ->whereIn('api_key_hash', PixelforgeCredentials::keyHashes())
             ->whereNotNull('next_attempt_at')
             ->where('next_attempt_at', '<=', Carbon::now())
             ->orderBy('next_attempt_at')

@@ -10,7 +10,7 @@ class PixelforgeWebhookController extends Controller
 {
     public function __invoke(PixelforgeWebhookRequest $request, ProcessPixelforgeWebhook $process): Response
     {
-        $process->handle($request->validated());
+        $process->handle($request->validated(), $request->providerKeyHash());
 
         return response()->noContent();
     }

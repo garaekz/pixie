@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\PixelforgeEventType;
+use App\Http\Middleware\VerifyPixelforgeSignature;
 use App\Rules\PixelforgeGenerationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,6 +14,11 @@ class PixelforgeWebhookRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    public function providerKeyHash(): string
+    {
+        return (string) $this->attributes->get(VerifyPixelforgeSignature::KEY_HASH_ATTRIBUTE);
     }
 
     /** @return array<string, ValidationRule|array<mixed>|string> */

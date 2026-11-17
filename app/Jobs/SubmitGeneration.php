@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Actions\GenerationLifecycle;
 use App\Actions\PixelforgeClient;
+use App\Actions\PixelforgeCredentials;
 use App\Enums\GenerationStatus;
 use App\Enums\SubmissionState;
 use App\Models\Generation;
@@ -39,7 +40,7 @@ class SubmitGeneration implements ShouldBeUnique, ShouldQueue
     {
         $generation = Generation::query()
             ->whereKey($this->generationId)
-            ->where('api_key_hash', PixelforgeClient::keyHash())
+            ->whereIn('api_key_hash', PixelforgeCredentials::keyHashes())
             ->first();
 
         if ($generation === null || $generation->isTerminal()) {
@@ -115,7 +116,7 @@ class SubmitGeneration implements ShouldBeUnique, ShouldQueue
     {
         return DB::transaction(function (): bool {
             $generation = Generation::query()->lockForUpdate()->find($this->generationId);
-            if ($generation === null || $generation->isTerminal() || $generation->provider_id !== null || $generation->api_key_hash !== PixelforgeClient::keyHash()) {
+            if ($generation === null || $generation->isTerminal() || $generation->provider_id !== null || PixelforgeCredentials::apiKey($generation->api_key_hash) === null) {
                 return false;
             }
 
@@ -190,7 +191,7 @@ class SubmitGeneration implements ShouldBeUnique, ShouldQueue
     private function retrieve(Generation $generation, PixelforgeClient $client, GenerationLifecycle $lifecycle): void
     {
         try {
-            $provider = $client->retrieve($generation->provider_id);
+            $provider = $client->retrieve($generation);
             $lifecycle->apply($generation, $provider);
         } catch (ConnectionException $exception) {
             $this->retryRetrieval();
