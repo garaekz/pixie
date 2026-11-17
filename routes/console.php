@@ -4,7 +4,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('pixelforge:reconcile')->everyMinute()->withoutOverlapping();
+Schedule::command('pixelforge:reconcile')->everyTenMinutes()->withoutOverlapping();
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
